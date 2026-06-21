@@ -7,4 +7,4 @@ TURNSTILE_SITEKEY = "0x4AAAAAADohIp2CpQrNxUDa"
 
 [[kv_namespaces]]
 binding = "KV"
-id = "your-kv-namespace-id"
+id = "07662561e2ef4135bfc9d47b5564222b"
