@@ -216,8 +216,8 @@ export class SubdomainService {
   }
 
   private async deleteCFRecord(zoneId: string, record: any): Promise<void> {
-    // 需要DNS记录ID - 这里简化处理
-    const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${record.subdomain}`, {
+    // 查询时需要用完整域名，而不是仅 subdomain
+    const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(record.fullDomain)}`, {
       headers: { 'Authorization': `Bearer ${this.cfToken}` },
     });
     const data = await res.json() as any;
