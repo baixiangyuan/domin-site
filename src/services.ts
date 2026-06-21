@@ -50,8 +50,14 @@ export class UserService {
   async getProfile(userId: string): Promise<any> {
     const user = await this.getUser(userId);
     if (!user) throw new Error('用户不存在');
-    const subdomains = await this.kv.list({ prefix: `subdomain:${userId}:` });
-    return { ...user, subdomains: subdomains.keys.map(k => k.name), password: undefined };
+    // 获取用户的子域名详细信息
+    const subdomains: any[] = [];
+    const list = await this.kv.list({ prefix: `subdomain:${userId}:` });
+    for (const key of list.keys) {
+      const sub = await this.kv.get(key.name, 'json');
+      if (sub) subdomains.push(sub);
+    }
+    return { ...user, subdomains, points: user.points || 0, password: undefined };
   }
 
   async updateProfile(userId: string, data: any): Promise<any> {
