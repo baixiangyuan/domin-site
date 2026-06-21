@@ -352,10 +352,10 @@ export class EmailService {
     </div>
     <p style="font-size:13px;color:#888;text-align:center;">此验证码有效期为 10 分钟，请勿泄露给他人。</p>
     <hr style="border:none;border-top:1px solid #eee;margin:28px 0;" />
-    <p style="font-size:12px;color:#aaa;text-align:center;">sb.bxya.top 子域名分发系统</p>
+    <p style="font-size:12px;color:#aaa;text-align:center;">dns.bxya.top 子域名分发系统</p>
   </div>
 </div>`,
-        text: `验证码：${code}，有效期10分钟。sb.bxya.top 子域名分发系统`,
+        text: `验证码：${code}，有效期10分钟。dns.bxya.top 子域名分发系统`,
       }),
     });
 
