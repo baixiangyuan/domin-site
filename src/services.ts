@@ -98,6 +98,11 @@ export class SubdomainService {
     const { subdomain, domain, target, recordType } = data;
     if (!subdomain || !domain) throw new Error('子域名和域名为必填');
 
+    // 禁止直接使用根域名
+    if (subdomain.trim() === '' || subdomain.trim() === '@') {
+      throw new Error('不能使用根域名');
+    }
+
     const key = `subdomain:${userId}:${domain}:${subdomain}`;
     const existing = await this.kv.get(key, 'json');
     if (existing) throw new Error('子域名已存在');
@@ -117,6 +122,11 @@ export class SubdomainService {
     const domains = await this.kv.get('config:domains', 'json') || [];
     const domainConfig = domains.find((d: any) => d.domain === domain);
     if (domainConfig) {
+      // 检查 Cloudflare 上是否已有该子域名的 DNS 记录
+      const hasExisting = await this.checkExistingRecord(domainConfig.zoneId, fullDomain);
+      if (hasExisting) {
+        throw new Error('该子域名已有 DNS 记录，不可使用');
+      }
       await this.createCFRecord(domainConfig.zoneId, subData);
     }
 
@@ -183,6 +193,19 @@ export class SubdomainService {
     if (!res.ok) {
       const err = await res.json();
       throw new Error(err.errors?.[0]?.message || 'Cloudflare API 错误');
+    }
+  }
+
+  // 检查 Cloudflare 上是否已有该子域名的 DNS 记录
+  private async checkExistingRecord(zoneId: string, fullDomain: string): Promise<boolean> {
+    try {
+      const res = await fetch(`https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?name=${encodeURIComponent(fullDomain)}`, {
+        headers: { 'Authorization': `Bearer ${this.cfToken}` },
+      });
+      const data = await res.json() as any;
+      return data.result && data.result.length > 0;
+    } catch {
+      return false;
     }
   }
 
