@@ -324,9 +324,44 @@ export class EmailService {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     await this.kv.put(`verify:${email}`, code, { expirationTtl: 600 });
 
-    // 这里接入实际邮件服务（Resend/SendGrid等）
-    // 简化版本，实际生产需要对接邮件API
+    // 使用 Resend 发送验证码邮件
+    await this.sendEmail(email, code);
 
     return { message: '验证码已发送' };
+  }
+
+  private async sendEmail(to: string, code: string): Promise<void> {
+    const fromEmail = 'verify@bxya.top'; // 替换为你的 Resend 验证域名邮箱
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: to,
+        subject: '【验证码】子域名分发系统',
+        html: `<div style="font-family:'Microsoft YaHei',Arial,sans-serif;max-width:480px;margin:0 auto;padding:40px 20px;color:#333; background:#f5f7fa;">
+  <div style="background:white;border-radius:12px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+    <h2 style="color:#1a73e8;font-size:22px;margin-bottom:24px;">🔐 验证码</h2>
+    <p style="font-size:15px;color:#555;line-height:1.8;">您好，</p>
+    <p style="font-size:15px;color:#555;line-height:1.8;">您正在进行注册验证，验证码如下：</p>
+    <div style="text-align:center;margin:32px 0;">
+      <div style="display:inline-block;background:#f0f4ff;border:1px dashed #1a73e8;border-radius:8px;padding:16px 40px;font-size:32px;font-weight:bold;color:#1a73e8;letter-spacing:8px;font-family:'Courier New',monospace;">${code}</div>
+    </div>
+    <p style="font-size:13px;color:#888;text-align:center;">此验证码有效期为 10 分钟，请勿泄露给他人。</p>
+    <hr style="border:none;border-top:1px solid #eee;margin:28px 0;" />
+    <p style="font-size:12px;color:#aaa;text-align:center;">sb.bxya.top 子域名分发系统</p>
+  </div>
+</div>`,
+        text: `验证码：${code}，有效期10分钟。sb.bxya.top 子域名分发系统`,
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json() as any;
+      throw new Error(err.message || '邮件发送失败');
+    }
   }
 }

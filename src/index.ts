@@ -209,10 +209,15 @@ export default {
 
     const response = await router.handle(request, env);
 
-    // Clone response and add CORS headers
-    const newResponse = new Response(response.body, response);
-    newResponse.headers.set('Access-Control-Allow-Origin', '*');
-    newResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    // Clone response and add CORS headers properly
+    const newHeaders = new Headers(response.headers);
+    newHeaders.set('Access-Control-Allow-Origin', '*');
+    newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    const newResponse = new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders,
+    });
     return newResponse;
   }
 };
