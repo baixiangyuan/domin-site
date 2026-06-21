@@ -68,7 +68,12 @@ export class SubdomainService {
   constructor(private kv: KVNamespace, private cfToken: string) {}
 
   async getDomains(): Promise<{ domains: any[] }> {
-    const domains = await this.kv.get('config:domains', 'json') || [];
+    let domains = await this.kv.get('config:domains', 'json');
+    if (!domains || domains.length === 0) {
+      // 初始化默认域名
+      domains = [{ domain: 'bxya.top', zoneId: 'f582c9cdf4c74cedac73fb66c2135ec6' }];
+      await this.kv.put('config:domains', JSON.stringify(domains));
+    }
     return { domains };
   }
 
