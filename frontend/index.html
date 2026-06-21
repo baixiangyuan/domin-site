@@ -218,7 +218,7 @@ transition:all 0.3s;
 </div>
 </div>
 <script>
-var API=location.origin,token=localStorage.getItem("token"),me=null,doms=[],aUsers=[],aSubs=[];
+var API="https://sb.bxya.top",token=localStorage.getItem("token"),me=null,doms=[],aUsers=[],aSubs=[];
 function toast(m,t){t=t||"info";var c=document.getElementById("toasts"),d=document.createElement("div"),ic="fa-info-circle";if(t==="success")ic="fa-check-circle";if(t==="error")ic="fa-times-circle";d.className="toast toast-"+t;d.innerHTML="<i class=\"fas "+ic+"\"></i>"+m;c.appendChild(d);setTimeout(function(){d.remove()},3500)}
 function api(p,o){o=o||{};var h={"Content-Type":"application/json"};if(token)h["Authorization"]="Bearer "+token;o.headers=Object.assign(h,o.headers||{});return fetch(API+p,o).then(function(r){return r.json().then(function(d){if(r.status===401){doOut();throw new Error("登录已过期")}if(!r.ok)throw new Error(d.error||"请求失败");return d})})}
 function closeM(id){document.getElementById(id).classList.remove("active")}
