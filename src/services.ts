@@ -169,8 +169,8 @@ export class SubdomainService {
       },
       body: JSON.stringify({
         type: record.recordType,
-        name: record.subdomain,
-        content: record.target,
+        name: record.fullDomain,
+        content: record.target || (record.recordType === 'CNAME' ? 'bxya.top' : ''),
         ttl: 1,
       }),
     });
