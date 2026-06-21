@@ -331,7 +331,7 @@ export class EmailService {
   }
 
   private async sendEmail(to: string, code: string): Promise<void> {
-    const fromEmail = 'verify@bxya.top'; // 替换为你的 Resend 验证域名邮箱
+    const fromEmail = 'dns@bxya.top'; // Resend 验证域名邮箱
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
