@@ -302,12 +302,29 @@ export class TurnstileService {
   constructor(private secret: string) {}
 
   async verify(token: string): Promise<{ success: boolean }> {
+    // Debug: check if secret is set
+    if (!this.secret || this.secret === 'undefined') {
+      console.error('TURNSTILE_SECRET is not set!');
+      throw new Error('服务器配置错误，请联系管理员');
+    }
+
+    const body = new URLSearchParams();
+    body.append('secret', this.secret);
+    body.append('response', token);
+
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `secret=${this.secret}&response=${token}`,
+      body: body.toString(),
     });
+
     const data = await res.json() as any;
+    console.log('Turnstile verify response:', JSON.stringify(data)); // Debug log
+
+    if (!data.success) {
+      console.error('Turnstile verify failed:', data['error-codes']);
+    }
+
     return { success: data.success };
   }
 }
