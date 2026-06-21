@@ -43,13 +43,16 @@ export class Router<Env> {
         params[route.paramNames[i]] = decodeURIComponent(match[i + 1]);
       }
 
-      const req = Object.create(request);
-      req.params = params;
+      (request as any).params = params;
 
       try {
-        return await route.handler(req, env);
+        const result = await route.handler(request as any, env);
+        return result;
       } catch (err: any) {
-        return Response.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+        return new Response(JSON.stringify({ error: err.message || 'Internal Server Error' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' }
+        });
       }
     }
 

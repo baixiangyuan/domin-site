@@ -21,13 +21,13 @@ export async function verifyToken(token: string, secret: string): Promise<{ user
 export async function authMiddleware(req: Request, env: { JWT_SECRET: string }): Promise<{ userId: string } | Response> {
   const auth = req.headers.get('Authorization');
   if (!auth || !auth.startsWith('Bearer ')) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
   }
   const token = auth.slice(7);
   try {
     const { userId } = await verifyToken(token, env.JWT_SECRET);
     return { userId };
   } catch {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 });
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
   }
 }
