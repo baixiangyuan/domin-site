@@ -1,0 +1,19 @@
+{
+  "name": "domin-site",
+  "version": "1.0.0",
+  "description": "子域名分发系统 - Cloudflare Workers + KV + Pages",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:static": "wrangler pages deploy frontend --project-name domin-site-pages"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240419.0",
+    "typescript": "^5.4.5",
+    "wrangler": "^3.57.0"
+  },
+  "dependencies": {
+    "jose": "^5.4.0"
+  }
+}

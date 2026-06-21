@@ -1,0 +1,10 @@
+name = "domin-site"
+main = "src/index.ts"
+compatibility_date = "2024-06-21"
+
+[vars]
+TURNSTILE_SITEKEY = "0x4AAAAAADohIp2CpQrNxUDa"
+
+[[kv_namespaces]]
+binding = "KV"
+id = "your-kv-namespace-id"

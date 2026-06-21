@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subdomain Service</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+<style>
+:root{
+--bg:#0b0f19;
+--surface:rgba(15,20,35,0.55);
+--surface2:rgba(20,28,50,0.4);
+--border:rgba(100,200,255,0.08);
+--border-hover:rgba(100,200,255,0.18);
+--text:#e0e7ff;
+--text-dim:rgba(160,174,220,0.55);
+--accent:#22d3ee;
+--accent2:#a78bfa;
+--accent-glow:rgba(34,211,238,0.12);
+--success:#34d399;
+--danger:#f87171;
+--warning:#fbbf24;
+--radius:16px;
+--radius-sm:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:"Noto Sans SC",sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+body::before{content:"";position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;background:linear-gradient(135deg,rgba(34,211,238,0.03) 0%,transparent 40%),linear-gradient(225deg,rgba(167,139,250,0.03) 0%,transparent 40%)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(34,211,238,0.2);border-radius:3px}
+#bg-layer{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-2;background-size:cover;background-position:center;filter:brightness(0.35) saturate(1.1);transition:background-image 1.5s ease}
+#bg-overlay{position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;background:linear-gradient(180deg,rgba(11,15,25,0.5) 0%,rgba(11,15,25,0.85) 100%);pointer-events:none}
+#skeleton{position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity 0.7s}
+#skeleton.hide{opacity:0;pointer-events:none}
+.sk-spinner{width:40px;height:40px;border:2px solid rgba(34,211,238,0.15);border-top-color:var(--accent);border-radius:50%;animation:spin 0.9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.sk-text{color:var(--accent);margin-top:14px;font-size:0.85rem;letter-spacing:3px}
+.app{position:relative;z-index:10;max-width:480px;margin:0 auto;padding:40px 16px;min-height:100vh;display:flex;flex-direction:column}
+.header{text-align:center;margin-bottom:24px}
+.header h1{font-size:1.4em;font-weight:700;color:var(--accent);margin-bottom:4px}
+.header p{color:var(--text-dim);font-size:0.82em}
+.card{
+background:var(--surface);
+backdrop-filter:blur(16px) saturate(140%);
+-webkit-backdrop-filter:blur(16px) saturate(140%);
+border:1px solid var(--border);
+border-radius:var(--radius);
+padding:28px;
+transition:all 0.3s;
+}
+.card:hover{border-color:var(--border-hover);box-shadow:0 0 20px var(--accent-glow)}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;margin-bottom:4px;font-size:0.78em;color:var(--text-dim);letter-spacing:0.5px}
+.form-group input,.form-group select{width:100%;padding:10px 12px;background:rgba(34,211,238,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:0.88em;outline:none;transition:all 0.25s}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(34,211,238,0.1)}
+.form-group select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%2322d3ee' d='M5 7L0 2h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}
+.cf-turnstile{margin-top:8px}
+.cf-turnstile iframe{border-radius:8px}
+.pwd-wrap{position:relative}
+.pwd-wrap input{padding-right:36px}
+.pwd-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:0.9em;padding:4px;line-height:1}
+.pwd-toggle:hover{color:var(--accent)}
+.code-row{display:flex;gap:6px}
+.code-row input{flex:1}
+.code-btn{padding:0 14px;background:var(--accent);color:#0b0f19;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:0.78em;font-weight:600;white-space:nowrap;transition:all 0.25s}
+.code-btn:hover{opacity:0.9}
+.code-btn:disabled{opacity:0.4;cursor:not-allowed}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 20px;border:none;border-radius:var(--radius-sm);font-size:0.88em;font-weight:600;cursor:pointer;transition:all 0.25s;width:100%}
+.btn i{font-size:0.85em}
+.btn-primary{background:var(--accent);color:#0b0f19;box-shadow:0 2px 12px var(--accent-glow)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px var(--accent-glow)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:6px 12px;font-size:0.75em;width:auto}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim)}
+.btn-ghost:hover{background:rgba(34,211,238,0.06);border-color:var(--border-hover);color:var(--text)}
+.switch-link{text-align:center;margin-top:14px;font-size:0.82em;color:var(--text-dim)}
+.switch-link a{color:var(--accent);cursor:pointer;text-decoration:none}
+.page{display:none;animation:fadeIn 0.3s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.nav{display:flex;justify-content:center;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.nav-btn{padding:7px 14px;border:1px solid var(--border);background:rgba(34,211,238,0.04);color:var(--text-dim);border-radius:8px;cursor:pointer;font-size:0.8em;transition:all 0.2s}
+.nav-btn:hover{background:rgba(34,211,238,0.08);color:var(--text)}
+.nav-btn.active{background:var(--accent);color:#0b0f19;border-color:var(--accent)}
+.nav-btn i{margin-right:4px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.stat{text-align:center;padding:12px 8px;background:rgba(34,211,238,0.04);border:1px solid var(--border);border-radius:8px}
+.stat .val{font-size:1.4em;font-weight:700;color:var(--accent)}
+.stat .lbl{font-size:0.68em;color:var(--text-dim);margin-top:2px}
+.sub-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:6px;background:rgba(34,211,238,0.03);border:1px solid var(--border);border-radius:8px;transition:all 0.2s}
+.sub-item:hover{border-color:var(--border-hover)}
+.sub-info{flex:1;min-width:0}
+.sub-info .name{font-weight:600;font-size:0.88em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub-info .target{color:var(--text-dim);font-size:0.72em;margin-top:2px}
+.sub-actions{display:flex;gap:4px;flex-shrink:0}
+.badge{display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.65em;font-weight:600}
+.badge-info{background:rgba(34,211,238,0.12);color:var(--accent)}
+.badge-success{background:rgba(52,211,153,0.12);color:var(--success)}
+.badge-danger{background:rgba(248,113,113,0.12);color:var(--danger)}
+.badge-warning{background:rgba(251,191,36,0.12);color:var(--warning)}
+.points{text-align:center;padding:10px;margin-bottom:14px;background:rgba(34,211,238,0.04);border:1px solid var(--border);border-radius:8px}
+.points i{color:var(--accent);margin-right:4px}
+.points .val{font-size:1.3em;font-weight:700;color:var(--accent)}
+.points .lbl{font-size:0.75em;color:var(--text-dim)}
+.empty{text-align:center;padding:30px;color:var(--text-dim);font-size:0.85em}
+.empty i{font-size:2em;display:block;margin-bottom:10px;opacity:0.3;color:var(--accent)}
+.toast-box{position:fixed;top:16px;right:16px;z-index:2000;display:flex;flex-direction:column;gap:6px}
+.toast{padding:10px 16px;border-radius:8px;color:#fff;font-size:0.82em;animation:slideIn 0.3s ease;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.toast i{margin-right:6px}
+.toast-success{background:var(--success)}
+.toast-error{background:var(--danger)}
+.toast-info{background:var(--accent);color:#0b0f19}
+@keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:none}}
+.modal-bg{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center}
+.modal-bg.active{display:flex}
+.modal{max-width:400px;width:90%;padding:24px}
+.modal h3{margin-bottom:14px;font-size:1.05em;color:var(--accent)}
+.modal h3 i{margin-right:6px}
+.modal-btns{display:flex;gap:8px;margin-top:16px}
+.modal-btns .btn{flex:1}
+.tabs{display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid var(--border)}
+.tab{padding:8px 14px;border:none;background:transparent;color:var(--text-dim);cursor:pointer;font-size:0.82em;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all 0.2s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab i{margin-right:4px}
+.tab-c{display:none}
+.tab-c.active{display:block;animation:fadeIn 0.3s ease}
+.admin-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.admin-bar input{flex:1;min-width:120px;padding:8px 12px;background:rgba(34,211,238,0.03);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:0.82em;outline:none}
+.admin-bar input:focus{border-color:var(--accent)}
+.tbl{width:100%;border-collapse:collapse;font-size:0.82em}
+.tbl th,.tbl td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.tbl th{color:var(--text-dim);font-size:0.72em;text-transform:uppercase;letter-spacing:0.5px}
+.footer{text-align:center;padding:24px 0 12px;margin-top:auto;font-size:0.75em;color:var(--text-dim)}
+.footer a{color:var(--accent);text-decoration:none;margin:0 6px}
+.footer a:hover{text-decoration:underline}
+.footer .sep{margin:0 4px;opacity:0.3}
+@media(max-width:520px){.app{padding:20px 12px}.stats{grid-template-columns:repeat(3,1fr)}}
+</style></head><body>
+<div id="skeleton"><div class="sk-spinner"></div><div class="sk-text">LOADING</div></div>
+<div id="bg-layer"></div>
+<div id="bg-overlay"></div>
+<div class="toast-box" id="toasts"></div>
+<div class="app">
+<div class="header"><h1><i class="fas fa-globe"></i> SUBDOMAIN</h1><p>Free Subdomain Distribution</p></div>
+<div id="page-login" class="page active"><div class="card">
+<h3 style="text-align:center;margin-bottom:18px;font-size:1.05em;color:var(--accent)"><i class="fas fa-lock"></i> 登录</h3>
+<div class="form-group"><label>用户名</label><input id="login-user" placeholder="请输入用户名"></div>
+<div class="form-group"><label>密码</label><div class="pwd-wrap"><input id="login-pass" type="password" placeholder="请输入密码"><button type="button" class="pwd-toggle" onclick="togglePwd('login-pass',this)"><i class="fas fa-eye"></i></button></div></div>
+<button class="btn btn-primary" onclick="doLogin()"><i class="fas fa-sign-in-alt"></i> 登 录</button>
+<div class="switch-link">还没有账号？<a onclick="showPage('register')">立即注册</a></div>
+</div></div>
+<div id="page-register" class="page"><div class="card">
+<h3 style="text-align:center;margin-bottom:18px;font-size:1.05em;color:var(--accent)"><i class="fas fa-user-plus"></i> 注册</h3>
+<div class="form-group"><label>用户名</label><input id="reg-user" placeholder="3-20位字母数字下划线"></div>
+<div class="form-group"><label>密码</label><div class="pwd-wrap"><input id="reg-pass" type="password" placeholder="至少6位"><button type="button" class="pwd-toggle" onclick="togglePwd('reg-pass',this)"><i class="fas fa-eye"></i></button></div></div>
+<div class="form-group"><label>邮箱</label><input id="reg-email" type="email" placeholder="your@email.com"></div>
+<div class="form-group"><label>验证码</label><div class="code-row"><input id="reg-code" placeholder="6位验证码"><button class="code-btn" id="btn-send-code" onclick="sendCode()"><i class="fas fa-paper-plane"></i> 发送</button></div></div>
+<div class="form-group"><div id="cf-turnstile" data-sitekey="0x4AAAAAADohIp2CpQrNxUDa" data-theme="dark" data-callback="onTurnstileSuccess"></div></div>
+<button class="btn btn-primary" onclick="doRegister()"><i class="fas fa-user-plus"></i> 注 册</button>
+<div class="switch-link">已有账号？<a onclick="showPage('login')">去登录</a></div>
+</div></div>
+<div id="page-dash" class="page">
+<div class="nav">
+<button class="nav-btn active" data-tab="my"><i class="fas fa-list"></i>子域名</button>
+<button class="nav-btn" data-tab="add"><i class="fas fa-plus"></i>创建</button>
+<button class="nav-btn" data-tab="me"><i class="fas fa-user"></i>我的</button>
+<button class="nav-btn admin-only" data-tab="adm" style="display:none"><i class="fas fa-cog"></i>管理</button>
+<button class="nav-btn" id="btn-out"><i class="fas fa-sign-out-alt"></i>退出</button>
+</div>
+<div id="tab-my" class="tab-c active">
+<div class="stats"><div class="stat"><div class="val" id="s-sub">0</div><div class="lbl">子域名</div></div><div class="stat"><div class="val" id="s-pt">0</div><div class="lbl">积分</div></div><div class="stat"><div class="val" id="s-day">0</div><div class="lbl">天数</div></div></div>
+<div id="sub-list"></div>
+</div>
+<div id="tab-add" class="tab-c">
+<div class="points"><i class="fas fa-gem"></i><span class="val" id="c-pt">0</span> <span class="lbl">剩余积分</span></div>
+<div class="card">
+<h3 style="margin-bottom:14px;font-size:0.95em;color:var(--accent)"><i class="fas fa-rocket"></i> 创建子域名</h3>
+<div class="form-group"><label>域名</label><select id="c-dom"></select></div>
+<div class="form-group"><label>子域名</label><input id="c-sub" placeholder="my-project"><div style="margin-top:3px;font-size:0.7em;color:var(--text-dim)">预览: <strong id="c-preview" style="color:var(--accent)">—</strong></div></div>
+<div class="form-group"><label>类型</label><select id="c-type" onchange="updType()"><option value="CNAME">CNAME</option><option value="A">A</option><option value="AAAA">AAAA</option></select></div>
+<div class="form-group"><label id="c-tgt-lbl">目标（可选）</label><input id="c-tgt" placeholder="your-server.com"></div>
+<button class="btn btn-primary" id="btn-add"><i class="fas fa-bullseye"></i> 创建</button>
+</div></div>
+<div id="tab-me" class="tab-c"><div class="card">
+<h3 style="margin-bottom:14px;font-size:0.95em;color:var(--accent)"><i class="fas fa-user"></i> 个人信息</h3>
+<div class="form-group"><label>用户名</label><input id="me-user" readonly style="opacity:0.4"></div>
+<div class="form-group"><label>邮箱</label><input id="me-email"></div>
+<div class="form-group"><label>角色</label><input id="me-role" readonly style="opacity:0.4"></div>
+<div class="form-group"><label>注册时间</label><input id="me-date" readonly style="opacity:0.4"></div>
+<button class="btn btn-primary" id="btn-save"><i class="fas fa-save"></i> 保存</button>
+</div></div>
+<div id="tab-adm" class="tab-c">
+<div class="tabs">
+<button class="tab active" data-at="au"><i class="fas fa-users"></i>用户</button>
+<button class="tab" data-at="as"><i class="fas fa-globe"></i>子域名</button>
+<button class="tab" data-at="ad"><i class="fas fa-server"></i>域名</button>
+<button class="tab" data-at="ast"><i class="fas fa-sliders-h"></i>设置</button>
+</div>
+<div id="at-au" class="tab-c active"><div class="admin-bar"><input id="au-q" placeholder="搜索..."><button class="btn btn-sm btn-ghost" id="btn-au"><i class="fas fa-sync-alt"></i></button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>用户</th><th>邮箱</th><th>积分</th><th>子域</th><th>状态</th><th>操作</th></tr></thead><tbody id="au-body"></tbody></table></div></div>
+<div id="at-as" class="tab-c"><div class="admin-bar"><input id="as-q" placeholder="搜索..."><button class="btn btn-sm btn-ghost" id="btn-as"><i class="fas fa-sync-alt"></i></button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>子域名</th><th>目标</th><th>所有者</th><th>时间</th><th>操作</th></tr></thead><tbody id="as-body"></tbody></table></div></div>
+<div id="at-ad" class="tab-c"><div class="admin-bar"><button class="btn btn-sm btn-primary" id="btn-ad"><i class="fas fa-plus"></i> 添加</button><button class="btn btn-sm btn-ghost" id="btn-ad-r"><i class="fas fa-sync-alt"></i></button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>域名</th><th>Zone ID</th><th>操作</th></tr></thead><tbody id="ad-body"></tbody></table></div></div>
+<div id="at-ast" class="tab-c"><div class="card" style="max-width:400px"><h4 style="margin-bottom:10px;color:var(--accent);font-size:0.9em"><i class="fas fa-cog"></i> 默认 CNAME</h4><div class="form-group"><input id="ast-cname" placeholder="example.com"></div><button class="btn btn-sm btn-primary" id="btn-ast"><i class="fas fa-save"></i> 保存</button></div></div>
+</div>
+</div>
+<div class="modal-bg" id="m-pts"><div class="modal card"><h3><i class="fas fa-gem"></i> 调整积分</h3><div class="form-group"><label>用户</label><input id="m-pts-u" readonly></div><div class="form-group"><label>操作</label><select id="m-pts-a"><option value="add">增加</option><option value="set">设置为</option></select></div><div class="form-group"><label>数量</label><input id="m-pts-v" type="number" min="0" value="1"></div><div class="modal-btns"><button class="btn btn-ghost" data-c="m-pts">取消</button><button class="btn btn-primary" id="btn-m-pts">确认</button></div></div></div>
+<div class="modal-bg" id="m-dom"><div class="modal card"><h3><i class="fas fa-plus-circle"></i> 添加域名</h3><div class="form-group"><label>域名</label><input id="m-dom-n" placeholder="example.com"></div><div class="form-group"><label>Zone ID</label><input id="m-dom-z" placeholder="从 Cloudflare 获取"></div><div class="modal-btns"><button class="btn btn-ghost" data-c="m-dom">取消</button><button class="btn btn-primary" id="btn-m-dom">添加</button></div></div></div>
+<div class="modal-bg" id="m-edit"><div class="modal card"><h3><i class="fas fa-edit"></i> 编辑子域名</h3><div class="form-group"><label>子域名</label><input id="m-ed-n" readonly style="opacity:0.5"></div><div class="form-group"><label>类型</label><select id="m-ed-t" onchange="updEdType()"><option value="CNAME">CNAME</option><option value="A">A</option><option value="AAAA">AAAA</option></select></div><div class="form-group"><label id="m-ed-lbl">目标</label><input id="m-ed-tgt"></div><div class="modal-btns"><button class="btn btn-ghost" data-c="m-edit">取消</button><button class="btn btn-primary" id="btn-m-edit">保存</button></div></div></div>
+<div class="modal-bg" id="m-confirm"><div class="modal card"><h3 id="m-c-title"><i class="fas fa-exclamation-triangle"></i> 确认</h3><p id="m-c-msg" style="color:var(--text-dim);font-size:0.85em;margin-bottom:12px"></p><div class="modal-btns"><button class="btn btn-ghost" data-c="m-confirm">取消</button><button class="btn btn-danger" id="m-c-btn">确认</button></div></div></div>
+<div class="footer">
+<div>xiongda <span class="sep">|</span> <a href="https://xiongdaa.me" target="_blank">xiongdaa.me</a></div>
+<div style="margin-top:4px">
+<a href="mailto:kssssxg@163.com"><i class="fas fa-envelope"></i> kssssxg@163.com</a>
+<span class="sep">|</span>
+<a href="https://zanzhu.xiongdaa.me" target="_blank"><i class="fas fa-heart"></i> 赞助</a>
+</div>
+</div>
+</div>
+<script>
+var API=location.origin,token=localStorage.getItem("token"),me=null,doms=[],aUsers=[],aSubs=[];
+function toast(m,t){t=t||"info";var c=document.getElementById("toasts"),d=document.createElement("div"),ic="fa-info-circle";if(t==="success")ic="fa-check-circle";if(t==="error")ic="fa-times-circle";d.className="toast toast-"+t;d.innerHTML="<i class=\"fas "+ic+"\"></i>"+m;c.appendChild(d);setTimeout(function(){d.remove()},3500)}
+function api(p,o){o=o||{};var h={"Content-Type":"application/json"};if(token)h["Authorization"]="Bearer "+token;o.headers=Object.assign(h,o.headers||{});return fetch(API+p,o).then(function(r){return r.json().then(function(d){if(r.status===401){doOut();throw new Error("登录已过期")}if(!r.ok)throw new Error(d.error||"请求失败");return d})})}
+function closeM(id){document.getElementById(id).classList.remove("active")}
+function copyT(t){navigator.clipboard.writeText(t).then(function(){toast("已复制","success")}).catch(function(){toast("复制失败","error")})}
+function togglePwd(id,b){var i=document.getElementById(id),ic=b.querySelector("i");if(i.type==="password"){i.type="text";ic.className="fas fa-eye-slash"}else{i.type="password";ic.className="fas fa-eye"}}
+function showPage(n){document.querySelectorAll(".page").forEach(function(x){x.classList.remove("active")});document.getElementById("page-"+n).classList.add("active");if(n==="register"&&window.turnstile){var w=document.getElementById("cf-turnstile");if(w&&!w.querySelector("iframe")){window.turnstile.render("#cf-turnstile",{sitekey:"0x4AAAAAADohIp2CpQrNxUDa",theme:"dark"})}}}
+function showTab(n){document.querySelectorAll("#page-dash .tab-c").forEach(function(x){x.classList.remove("active")});document.querySelectorAll("#page-dash .nav .nav-btn").forEach(function(x){x.classList.remove("active")});document.getElementById("tab-"+n).classList.add("active");var b=document.querySelector("[data-tab=\""+n+"\"]");if(b)b.classList.add("active");if(n==="my")loadMy();if(n==="add")loadAdd();if(n==="me")loadMe();if(n==="adm")loadAdm()}
+function showAT(n){document.querySelectorAll("#tab-adm .tab-c").forEach(function(x){x.classList.remove("active")});document.querySelectorAll("#tab-adm .tab").forEach(function(x){x.classList.remove("active")});document.getElementById("at-"+n).classList.add("active");var b=document.querySelector("[data-at=\""+n+"\"]");if(b)b.classList.add("active");if(n==="au")loadAU();if(n==="as")loadAS();if(n==="ad")loadAD();if(n==="ast")loadAST()}
+function doLogin(){var u=document.getElementById("login-user").value.trim(),pw=document.getElementById("login-pass").value;if(!u||!pw)return toast("请填写用户名和密码","error");api("/api/login",{method:"POST",body:JSON.stringify({username:u,password:pw})}).then(function(d){token=d.token;localStorage.setItem("token",token);me=d.user;toast("登录成功","success");enterDash()}).catch(function(e){toast(e.message,"error")})}
+function doRegister(){var u=document.getElementById("reg-user").value.trim(),pw=document.getElementById("reg-pass").value,em=document.getElementById("reg-email").value.trim(),cd=document.getElementById("reg-code").value.trim();if(!u||!pw)return toast("请填写用户名和密码","error");if(!em)return toast("请填写邮箱","error");if(!cd)return toast("请输入验证码","error");api("/api/register",{method:"POST",body:JSON.stringify({username:u,password:pw,email:em,code:cd})}).then(function(d){token=d.token;localStorage.setItem("token",token);me=d.user;toast(d.message||"注册成功","success");enterDash()}).catch(function(e){toast(e.message,"error")})}
+function doOut(){token=null;me=null;localStorage.removeItem("token");showPage("login")}
+function enterDash(){showPage("dash");api("/api/profile").then(function(p){me=p;document.querySelector(".admin-only").style.display=p.role==="admin"?"":"none";showTab("my")}).catch(function(){doOut()})}
+function sendCode(){var em=document.getElementById("reg-email").value.trim();if(!em)return toast("请先填写邮箱","error");var tk=document.querySelector("[name=cf-turnstile-response]");if(!tk||!tk.value)return toast("请先完成人机验证","error");var b=document.getElementById("btn-send-code");b.disabled=true;b.innerHTML="<i class=\"fas fa-spinner fa-spin\"></i>";api("/api/send-code",{method:"POST",body:JSON.stringify({email:em,token:tk.value})}).then(function(d){toast(d.message||"已发送","success");var s=60;var t=setInterval(function(){s--;b.innerHTML=s+"s";if(s<=0){clearInterval(t);b.disabled=false;b.innerHTML="<i class=\"fas fa-paper-plane\"></i> 发送"}},1000)}).catch(function(e){toast(e.message,"error");b.disabled=false;b.innerHTML="<i class=\"fas fa-paper-plane\"></i> 发送"})}
+function loadMy(){api("/api/profile").then(function(p){me=p;document.getElementById("s-sub").textContent=(p.subdomains||[]).length;document.getElementById("s-pt").textContent=p.points;var d=Math.floor((Date.now()-new Date(p.createdAt).getTime())/86400000);document.getElementById("s-day").textContent=d;var l=document.getElementById("sub-list");if(!p.subdomains||p.subdomains.length===0){l.innerHTML="<div class=\"empty\"><i class=\"fas fa-globe\"></i>还没有子域名</div>";return}l.innerHTML=p.subdomains.map(function(s){var rt=s.recordType||"CNAME";return "<div class=\"sub-item\"><div class=\"sub-info\"><div class=\"name\">"+s.fullDomain+"</div><div class=\"target\"><span class=\"badge badge-info\">"+rt+"</span> "+s.target+" \u00b7 "+new Date(s.createdAt).toLocaleDateString("zh-CN")+"</div></div><div class=\"sub-actions\"><button class=\"btn btn-sm btn-ghost\" data-ed=\""+s.domain+":"+s.subdomain+"\"><i class=\"fas fa-edit\"></i></button><button class=\"btn btn-sm btn-ghost\" data-cp=\""+s.fullDomain+"\"><i class=\"fas fa-copy\"></i></button><button class=\"btn btn-sm btn-danger\" data-del=\""+s.domain+":"+s.subdomain+"\"><i class=\"fas fa-trash\"></i></button></div></div>"}).join("")}).catch(function(e){toast(e.message,"error")})}
+function loadAdd(){document.getElementById("c-pt").textContent=me?me.points:0;api("/api/domains").then(function(d){doms=d.domains||[];var s=document.getElementById("c-dom");s.innerHTML=doms.map(function(dm){return "<option value=\""+dm.domain+"\">"+dm.domain+"</option>"}).join("");updPreview()}).catch(function(){})}
+function updPreview(){var sub=document.getElementById("c-sub").value.trim(),dom=document.getElementById("c-dom").value;document.getElementById("c-preview").textContent=sub&&dom?sub+"."+dom:"\u2014"}
+function updType(){var t=document.getElementById("c-type").value,l=document.getElementById("c-tgt-lbl"),i=document.getElementById("c-tgt");if(t==="CNAME"){l.textContent="目标（可选）";i.placeholder="your-server.com"}else if(t==="A"){l.textContent="IPv4（必填）";i.placeholder="1.2.3.4"}else{l.textContent="IPv6（必填）";i.placeholder="2001:db8::1"}updPreview()}
+function doAdd(){var sub=document.getElementById("c-sub").value.trim(),dom=document.getElementById("c-dom").value,tgt=document.getElementById("c-tgt").value.trim(),tp=document.getElementById("c-type").value;if(!sub)return toast("请输入子域名","error");if(!dom)return toast("请选择域名","error");if(tp!=="CNAME"&&!tgt)return toast(tp+" 必须填目标","error");api("/api/subdomains",{method:"POST",body:JSON.stringify({subdomain:sub,domain:dom,target:tgt,recordType:tp})}).then(function(d){toast("创建成功！"+d.subdomain.fullDomain,"success");showTab("my")}).catch(function(e){toast(e.message,"error")})}
+function confirmDel(dom,sub){document.getElementById("m-c-title").innerHTML="<i class=\"fas fa-exclamation-triangle\"></i> 删除";document.getElementById("m-c-msg").textContent="确定删除 "+sub+"."+dom+" 吗？";document.getElementById("m-c-btn").onclick=function(){api("/api/subdomains/"+dom+"/"+sub,{method:"DELETE"}).then(function(){toast("已删除","success");closeM("m-confirm");loadMy()}).catch(function(e){toast(e.message,"error")})};document.getElementById("m-confirm").classList.add("active")}
+function openEd(dom,sub){api("/api/subdomains/"+dom+"/"+sub+"/info").then(function(d){document.getElementById("m-ed-n").value=d.subdomain.fullDomain;document.getElementById("m-ed-t").value=d.subdomain.recordType||"CNAME";document.getElementById("m-ed-tgt").value=d.subdomain.target;updEdType();document.getElementById("m-edit").dataset.dom=dom;document.getElementById("m-edit").dataset.sub=sub;document.getElementById("m-edit").classList.add("active")})}
+function updEdType(){var t=document.getElementById("m-ed-t").value,l=document.getElementById("m-ed-lbl");if(t==="CNAME")l.textContent="CNAME 目标";else if(t==="A")l.textContent="IPv4";else l.textContent="IPv6"}
+function doEd(){var m=document.getElementById("m-edit"),dom=m.dataset.dom,sub=m.dataset.sub,tp=document.getElementById("m-ed-t").value,tgt=document.getElementById("m-ed-tgt").value.trim();if(!tgt)return toast("目标不能为空","error");api("/api/subdomains/"+dom+"/"+sub+"/edit",{method:"PUT",body:JSON.stringify({recordType:tp,target:tgt})}).then(function(){toast("已更新","success");closeM("m-edit");loadMy()}).catch(function(e){toast(e.message,"error")})}
+function loadMe(){if(!me)return;document.getElementById("me-user").value=me.username;document.getElementById("me-email").value=me.email||"";document.getElementById("me-role").value=me.role==="admin"?"管理员":"用户";document.getElementById("me-date").value=new Date(me.createdAt).toLocaleString("zh-CN")}
+function saveMe(){api("/api/profile",{method:"PUT",body:JSON.stringify({email:document.getElementById("me-email").value})}).then(function(){toast("已保存","success")}).catch(function(e){toast(e.message,"error")})}
+function loadAdm(){loadAU();api("/api/stats").then(function(s){}).catch(function(){})}
+function loadAU(){api("/api/admin/users").then(function(d){aUsers=d.users||[];renderAU(aUsers)}).catch(function(e){toast(e.message,"error")})}
+function renderAU(u){var b=document.getElementById("au-body");b.innerHTML=u.map(function(x){return "<tr><td><strong>"+x.username+"</strong>"+(x.role==="admin"?" <span class=\"badge badge-info\">Admin</span>":"")+"</td><td>"+(x.email||"\u2014")+"</td><td><span class=\"badge badge-warning\">"+x.points+"</span></td><td>"+x.subdomainCount+"</td><td>"+(x.banned?"<span class=\"badge badge-danger\">封禁</span>":"<span class=\"badge badge-success\">正常</span>")+"</td><td>"+(x.username!=="admin"?"<button class=\"btn btn-sm btn-ghost\" data-pts=\""+x.username+"\"><i class=\"fas fa-gem\"></i></button> <button class=\"btn btn-sm btn-"+(x.banned?"primary":"danger")+"\" data-ban=\""+x.username+"\">"+(x.banned?"解封":"封禁")+"</button>":"")+"</td></tr>"}).join("")}
+function filterAU(){var q=document.getElementById("au-q").value.toLowerCase();renderAU(aUsers.filter(function(u){return u.username.toLowerCase().indexOf(q)!==-1||(u.email||"").toLowerCase().indexOf(q)!==-1}))}
+function openPts(u){document.getElementById("m-pts-u").value=u;document.getElementById("m-pts-v").value=1;document.getElementById("m-pts").classList.add("active")}
+function doPts(){var u=document.getElementById("m-pts-u").value,a=document.getElementById("m-pts-a").value,v=parseInt(document.getElementById("m-pts-v").value);if(isNaN(v)||v<0)return toast("无效","error");api("/api/admin/points",{method:"POST",body:JSON.stringify({username:u,points:v,action:a})}).then(function(){toast("已调整","success");closeM("m-pts");loadAU()}).catch(function(e){toast(e.message,"error")})}
+function togBan(u){api("/api/admin/toggle-ban",{method:"POST",body:JSON.stringify({username:u})}).then(function(){toast("已操作","success");loadAU()}).catch(function(e){toast(e.message,"error")})}
+function loadAS(){api("/api/admin/subdomains").then(function(d){aSubs=d.subdomains||[];renderAS(aSubs)}).catch(function(e){toast(e.message,"error")})}
+function renderAS(s){var b=document.getElementById("as-body");b.innerHTML=s.map(function(x){var rt=x.recordType||"CNAME";return "<tr><td><strong>"+x.fullDomain+"</strong></td><td><span class=\"badge badge-info\">"+rt+"</span> "+x.target+"</td><td>"+x.owner+"</td><td>"+new Date(x.createdAt).toLocaleDateString("zh-CN")+"</td><td><button class=\"btn btn-sm btn-danger\" data-das=\""+x.fullDomain+"\"><i class=\"fas fa-trash\"></i></button></td></tr>"}).join("")}
+function filterAS(){var q=document.getElementById("as-q").value.toLowerCase();renderAS(aSubs.filter(function(s){return s.fullDomain.toLowerCase().indexOf(q)!==-1||s.owner.toLowerCase().indexOf(q)!==-1}))}
+function confirmDAS(fd){document.getElementById("m-c-title").innerHTML="<i class=\"fas fa-exclamation-triangle\"></i> 删除";document.getElementById("m-c-msg").textContent="确定删除 "+fd+" 吗？";document.getElementById("m-c-btn").onclick=function(){api("/api/admin/subdomains/"+fd,{method:"DELETE"}).then(function(){toast("已删除","success");closeM("m-confirm");loadAS()}).catch(function(e){toast(e.message,"error")})};document.getElementById("m-confirm").classList.add("active")}
+function loadAD(){api("/api/domains").then(function(d){doms=d.domains||[];var b=document.getElementById("ad-body");b.innerHTML=doms.map(function(dm){return "<tr><td><strong>"+dm.domain+"</strong></td><td><code style=\"font-size:0.75em;opacity:0.5\">"+dm.zoneId+"</code></td><td><button class=\"btn btn-sm btn-danger\" data-dd=\""+dm.domain+"\"><i class=\"fas fa-trash\"></i></button></td></tr>"}).join("")}).catch(function(e){toast(e.message,"error")})}
+function openAddDom(){document.getElementById("m-dom-n").value="";document.getElementById("m-dom-z").value="";document.getElementById("m-dom").classList.add("active")}
+function doAddDom(){var n=document.getElementById("m-dom-n").value.trim(),z=document.getElementById("m-dom-z").value.trim();if(!n||!z)return toast("请填写完整","error");api("/api/admin/domains",{method:"POST",body:JSON.stringify({domain:n,zoneId:z})}).then(function(){toast("已添加","success");closeM("m-dom");loadAD()}).catch(function(e){toast(e.message,"error")})}
+function confirmDD(d){document.getElementById("m-c-title").innerHTML="<i class=\"fas fa-exclamation-triangle\"></i> 删除域名";document.getElementById("m-c-msg").textContent="确定删除 "+d+" 及其所有子域名？";document.getElementById("m-c-btn").onclick=function(){api("/api/admin/domains/"+d,{method:"DELETE"}).then(function(){toast("已删除","success");closeM("m-confirm");loadAD()}).catch(function(e){toast(e.message,"error")})};document.getElementById("m-confirm").classList.add("active")}
+function loadAST(){api("/api/stats").then(function(s){}).catch(function(){})}
+function doAST(){var t=document.getElementById("ast-cname").value.trim();if(!t)return toast("请输入","error");api("/api/admin/cname",{method:"POST",body:JSON.stringify({target:t})}).then(function(){toast("已保存","success")}).catch(function(e){toast(e.message,"error")})}
+function initTurnstile(){if(window.turnstile){var w=document.getElementById("cf-turnstile");if(w&&!w.querySelector("iframe")){window.turnstile.render("#cf-turnstile",{sitekey:"0x4AAAAAADohIp2CpQrNxUDa",theme:"dark"})}}}
+function loadBg(){var u=["https://www.loliapi.com/acg/","https://www.loliapi.com/acg/pc/","https://img.8845.top/acg","https://img.xjh.me/random_img.php?return=302"];document.getElementById("bg-layer").style.backgroundImage="url("+u[Math.floor(Math.random()*u.length)]+")"}
+document.addEventListener("click",function(e){var t=e.target;
+if(t.dataset.tab){e.preventDefault();showTab(t.dataset.tab);return}
+if(t.dataset.at){e.preventDefault();showAT(t.dataset.at);return}
+if(t.dataset.cp){e.preventDefault();copyT(t.dataset.cp);return}
+if(t.dataset.del){var ds=t.dataset.del.split(":");confirmDel(ds[0],ds[1]);return}
+if(t.dataset.ed){var es=t.dataset.ed.split(":");openEd(es[0],es[1]);return}
+if(t.dataset.pts){openPts(t.dataset.pts);return}
+if(t.dataset.ban){togBan(t.dataset.ban);return}
+if(t.dataset.das){confirmDAS(t.dataset.das);return}
+if(t.dataset.dd){confirmDD(t.dataset.dd);return}
+if(t.dataset.c){closeM(t.dataset.c);return}
+if(t.id==="btn-out"){doOut();return}
+if(t.id==="btn-add"){doAdd();return}
+if(t.id==="btn-save"){saveMe();return}
+if(t.id==="btn-au"){loadAU();return}
+if(t.id==="btn-as"){loadAS();return}
+if(t.id==="btn-ad"){openAddDom();return}
+if(t.id==="btn-ad-r"){loadAD();return}
+if(t.id==="btn-m-pts"){doPts();return}
+if(t.id==="btn-m-dom"){doAddDom();return}
+if(t.id==="btn-m-edit"){doEd();return}
+if(t.id==="btn-ast"){doAST();return}
+});
+document.addEventListener("input",function(e){
+if(e.target.id==="au-q")filterAU();
+if(e.target.id==="as-q")filterAS();
+if(e.target.id==="c-sub"){var s=e.target.value.trim(),d=document.getElementById("c-dom").value;document.getElementById("c-preview").textContent=s&&d?s+"."+d:"\u2014"}
+});
+document.addEventListener("change",function(e){
+if(e.target.id==="c-dom"){var s=document.getElementById("c-sub").value.trim(),d=e.target.value;document.getElementById("c-preview").textContent=s&&d?s+"."+d:"\u2014"}
+});
+document.getElementById("login-pass").addEventListener("keydown",function(e){if(e.key==="Enter")doLogin()});
+document.getElementById("reg-pass").addEventListener("keydown",function(e){if(e.key==="Enter")doRegister()});
+document.querySelectorAll(".modal-bg").forEach(function(m){m.addEventListener("click",function(e){if(e.target===m)m.classList.remove("active")})});
+loadBg();
+setTimeout(function(){initTurnstile()},1000);
+if(token){enterDash()}else{showPage("login")}
+setTimeout(function(){document.getElementById("skeleton").classList.add("hide")},500);
+</script>
+</body></html>
