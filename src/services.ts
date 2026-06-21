@@ -28,7 +28,7 @@ export class UserService {
       password, // 生产环境应该哈希
       email,
       role: username === 'admin' ? 'admin' : 'user',
-      points: 100,
+      maxDomains: 5, // 默认可以拥有5个域名
       subdomains: [],
       createdAt: new Date().toISOString(),
       banned: false,
@@ -57,7 +57,7 @@ export class UserService {
       const sub = await this.kv.get(key.name, 'json');
       if (sub) subdomains.push(sub);
     }
-    return { ...user, subdomains, points: user.points || 0, password: undefined };
+    return { ...user, subdomains, maxDomains: user.maxDomains || 5, usedDomains: subdomains.length, password: undefined };
   }
 
   async updateProfile(userId: string, data: any): Promise<any> {
@@ -97,6 +97,15 @@ export class SubdomainService {
   async create(userId: string, data: any): Promise<any> {
     const { subdomain, domain, target, recordType } = data;
     if (!subdomain || !domain) throw new Error('子域名和域名为必填');
+
+    // 小杨: 检查用户是否超过域名数上限
+    const user = await this.kv.get(`user:${userId}`, 'json');
+    const userSubdomainList = await this.kv.list({ prefix: `subdomain:${userId}:` });
+    const userSubdomainCount = userSubdomainList.keys.length;
+    const maxDomains = user?.maxDomains || 5;
+    if (userSubdomainCount >= maxDomains) {
+      throw new Error(`域名数已达上限 (${userSubdomainCount}/${maxDomains})`);
+    }
 
     // 禁止直接使用根域名
     if (subdomain.trim() === '' || subdomain.trim() === '@') {
@@ -264,17 +273,17 @@ export class AdminService {
     return { subdomains };
   }
 
-  async adjustPoints(userId: string, data: { username: string; points: number; action: string }): Promise<any> {
+  async adjustMaxDomains(userId: string, data: { username: string; maxDomains: number; action: string }): Promise<any> {
     await this.checkAdmin(userId);
     const user = await this.kv.get(`user:${data.username}`, 'json');
     if (!user) throw new Error('用户不存在');
     if (data.action === 'add') {
-      user.points = (user.points || 0) + data.points;
+      user.maxDomains = (user.maxDomains || 5) + data.maxDomains;
     } else if (data.action === 'set') {
-      user.points = data.points;
+      user.maxDomains = data.maxDomains;
     }
     await this.kv.put(`user:${data.username}`, JSON.stringify(user));
-    return { success: true };
+    return { success: true, maxDomains: user.maxDomains };
   }
 
   async toggleBan(userId: string, targetUsername: string): Promise<any> {

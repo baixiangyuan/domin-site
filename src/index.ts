@@ -140,12 +140,12 @@ router.get('/api/admin/subdomains', async (req, env) => {
   return json(result);
 });
 
-router.post('/api/admin/points', async (req, env) => {
+router.post('/api/admin/max-domains', async (req, env) => {
   const auth = await authMiddleware(req, env);
   if (auth instanceof Response) return auth;
   const data = await req.json();
   const adminService = new AdminService(env.KV, env.CF_API_TOKEN);
-  const result = await adminService.adjustPoints(auth.userId, data);
+  const result = await adminService.adjustMaxDomains(auth.userId, data);
   return json(result);
 });
 
