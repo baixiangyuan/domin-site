@@ -1,15 +1,26 @@
 import { SignJWT, jwtVerify } from 'jose';
 
+// Ensure secret is at least 32 bytes (256 bits) for HS256
+function getSecret(secret: string): Uint8Array {
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(secret);
+  if (encoded.length >= 32) return encoded;
+  // Pad short secrets to 32 bytes to avoid HMAC key length error
+  const padded = new Uint8Array(32);
+  padded.set(encoded);
+  return padded;
+}
+
 export async function createToken(userId: string, secret: string): Promise<string> {
   return await new SignJWT({ userId })
     .setProtectedHeader({ alg: 'HS256' })
     .setExpirationTime('7d')
-    .sign(new TextEncoder().encode(secret));
+    .sign(getSecret(secret));
 }
 
 export async function verifyToken(token: string, secret: string): Promise<{ userId: string }> {
   try {
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+    const { payload } = await jwtVerify(token, getSecret(secret), {
       clockTolerance: 60,
     });
     return { userId: payload.userId as string };
