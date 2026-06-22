@@ -312,6 +312,14 @@ router.post('/api/change-password', async (req, env) => {
   const userService = new UserService(env.KV, env.JWT_SECRET);
   return json(await userService.changePassword(auth.userId, data.oldPassword, data.newPassword, data.code));
 });
+
+router.delete('/api/profile', async (req, env) => {
+  const auth = await authMiddleware(req, env);
+  if (auth instanceof Response) return auth;
+  const userService = new UserService(env.KV, env.JWT_SECRET);
+  const result = await userService.deleteAccount(auth.userId);
+  return json(result);
+});
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // CORS handling for preflight requests
