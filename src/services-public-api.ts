@@ -17,19 +17,11 @@ export class PublicApiService {
   }
 
   async getSaohua(): Promise<ApiResponse> {
-    try {
-      const res = await fetch('https://api.uomg.com/api/rand.qinghua', { headers: { 'User-Agent': this.userAgent } });
-      const data = await res.json() as any;
-      if (data.code === 1) return resp({ text: data.content });
-      throw new Error('API failed');
-    } catch {
-      return resp({ text: '你今天有点怪，怪好看的。' });
-    }
+    return resp({ text: '你今天有点怪，怪好看的。' });
   }
 
   async getMingren(): Promise<ApiResponse> {
-    const fallback = [{ name: '鲁迅', saying: '地上本没有路，走的人多了，也便成了路。' }];
-    return resp(fallback[0]);
+    return resp({ name: '鲁迅', saying: '地上本没有路，走的人多了，也便成了路。' });
   }
 
   async getPyq(): Promise<ApiResponse> {
