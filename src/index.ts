@@ -340,12 +340,13 @@ export default {
     // Clone response and add CORS headers properly
     const newHeaders = new Headers(response.headers);
     newHeaders.set('Access-Control-Allow-Origin', '*');
+    newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    const newResponse = new Response(response.body, {
+    
+    return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
       headers: newHeaders,
     });
-    return newResponse;
   }
 };
