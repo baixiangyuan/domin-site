@@ -72,17 +72,14 @@ export class UserService {
     const user = await this.getUser(userId);
     if (!user) throw new Error('用户不存在');
     
-    // Debug
-    console.log('DEBUG: user.password=', user.password, 'oldPassword=', oldPassword);
-    
     if (user.password !== oldPassword) throw new Error('原密码错误');
     if (!newPassword || newPassword.length < 6) throw new Error('新密码至少6位');
     
     // 如果有验证码则验证
     if (code) {
       const cachedCode = await this.kv.get(`verify:${user.email}`);
-      console.log('DEBUG: cachedCode=', cachedCode, 'inputCode=', code);
       if (cachedCode !== code) throw new Error('验证码错误或已过期');
+      // 验证通过后删除验证码，防止重复使用
       await this.kv.delete(`verify:${user.email}`);
     }
     
