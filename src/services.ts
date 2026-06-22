@@ -67,6 +67,26 @@ export class UserService {
     await this.setUser(userId, user);
     return { success: true };
   }
+
+  async changePassword(userId: string, oldPassword: string, newPassword: string, code?: string): Promise<any> {
+    const user = await this.getUser(userId);
+    if (!user) throw new Error('用户不存在');
+    // 验证原密码
+    if (user.password !== oldPassword) throw new Error('原密码错误');
+    if (!newPassword || newPassword.length < 6) throw new Error('新密码至少6位');
+    
+    // 如果有验证码则验证
+    if (code) {
+      const cachedCode = await this.kv.get(`verify:${user.email}`);
+      if (cachedCode !== code) throw new Error('验证码错误或已过期');
+      // 验证通过后删除验证码，防止重复使用
+      await this.kv.delete(`verify:${user.email}`);
+    }
+    
+    user.password = newPassword;
+    await this.setUser(userId, user);
+    return { success: true };
+  }
 }
 
 // ==================== SubdomainService ====================
@@ -390,6 +410,13 @@ export class EmailService {
     return { message: '验证码已发送' };
   }
 
+  async sendAuthCode(email: string): Promise<{ message: string }> {
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    await this.kv.put(`verify:${email}`, code, { expirationTtl: 600 });
+    await this.sendEmail(email, code);
+    return { message: '验证码已发送至您的邮箱' };
+  }
+
   private async sendEmail(to: string, code: string): Promise<void> {
     const fromEmail = 'dns@bxya.top'; // Resend 验证域名邮箱
     const res = await fetch('https://api.resend.com/emails', {
@@ -425,3 +452,7 @@ export class EmailService {
     }
   }
 }
+// ==================== PublicApiService ====================
+// ==================== PublicApiService ====================
+// 实际代码已移动到 services-public-api.ts，这里重新导出以保持兼容
+export { PublicApiService } from './services-public-api';

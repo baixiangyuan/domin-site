@@ -1,4 +1,5 @@
 import { Router } from './router';
+import { PublicApiService } from './services-public-api';
 import { authMiddleware } from './auth';
 import { UserService, SubdomainService, AdminService, TurnstileService, EmailService } from './services';
 
@@ -198,6 +199,119 @@ router.get('/api/stats', async (req, env) => {
   return json(result);
 });
 
+
+// ==================== Public API Routes ====================
+const publicApiService = new PublicApiService();
+
+// Wenan
+router.get('/api/yiyan', async () => json(await publicApiService.getYiyan()));
+router.get('/api/saohua', async () => json(await publicApiService.getSaohua()));
+router.get('/api/mingren', async () => json(await publicApiService.getMingren()));
+router.get('/api/pyq', async () => json(await publicApiService.getPyq()));
+router.get('/api/anwei', async () => json(await publicApiService.getAnwei()));
+router.get('/api/dujitang', async () => json(await publicApiService.getDujitang()));
+router.get('/api/miyu', async () => json(await publicApiService.getMiyu()));
+router.get('/api/chengyu', async () => json(await publicApiService.getChengyu()));
+router.get('/api/xiaohua', async () => json(await publicApiService.getXiaohua()));
+router.get('/api/tiangou', async () => json(await publicApiService.getTiangou()));
+
+// Hot search
+router.get('/api/douyin', async () => json(await publicApiService.getDouyin()));
+router.get('/api/bilibili', async () => json(await publicApiService.getBilibili()));
+router.get('/api/weibo', async () => json(await publicApiService.getWeibo()));
+router.get('/api/baidu', async () => json(await publicApiService.getBaidu()));
+
+// News
+router.get('/api/news', async () => json(await publicApiService.getNews()));
+
+// Tools
+router.get('/api/myip', async (req) => json(await publicApiService.getMyIp(req)));
+router.get('/api/uuid', async () => json(await publicApiService.getUuid()));
+router.get('/api/md5', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getMd5(url.searchParams.get('text') || ''));
+});
+router.get('/api/base64', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getBase64(url.searchParams.get('text') || ''));
+});
+router.get('/api/urlencode', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getUrlEncode(url.searchParams.get('text') || ''));
+});
+router.get('/api/unicode', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getUnicode(url.searchParams.get('text') || ''));
+});
+router.get('/api/httpcode', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getHttpCode(url.searchParams.get('code') || ''));
+});
+router.get('/api/tianqi', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getWeather(url.searchParams.get('city') || ''));
+});
+router.get('/api/fanyi', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getTranslate(url.searchParams.get('text') || ''));
+});
+router.get('/api/xingming', async () => json(await publicApiService.getXingming()));
+router.get('/api/timestamp', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getTimestamp(url.searchParams.get('ts') || undefined));
+});
+
+// QQ
+router.get('/api/qq', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getQq(url.searchParams.get('qq') || ''));
+});
+
+// Query
+router.get('/api/whois', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getWhois(url.searchParams.get('domain') || ''));
+});
+router.get('/api/icp', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getIcp(url.searchParams.get('url') || ''));
+});
+router.get('/api/phone', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getPhone(url.searchParams.get('num') || ''));
+});
+
+// Generate
+router.get('/api/qrcode', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getQrcode(url.searchParams.get('text') || '', url.searchParams.get('size') || ''));
+});
+router.get('/api/music', async (req) => {
+  const url = new URL(req.url);
+  return json(await publicApiService.getMusic(url.searchParams.get('s') || ''));
+});
+router.get('/api/bizhi', async () => json(await publicApiService.getBizhi()));
+router.get('/api/bing', async () => json(await publicApiService.getBing()));
+router.get('/api/touxiang', async () => json(await publicApiService.getTouxiang()));
+router.get('/api/biaoqing', async () => json(await publicApiService.getBiaoqing()));
+
+// Change password routes
+router.post('/api/send-auth-code', async (req, env) => {
+  const auth = await authMiddleware(req, env);
+  if (auth instanceof Response) return auth;
+  const userService = new UserService(env.KV, env.JWT_SECRET);
+  const profile = await userService.getProfile(auth.userId);
+  const emailService = new EmailService(env.EMAIL_API_KEY, env.KV);
+  return json(await emailService.sendAuthCode(profile.email));
+});
+
+router.post('/api/change-password', async (req, env) => {
+  const auth = await authMiddleware(req, env);
+  if (auth instanceof Response) return auth;
+  const data = await req.json();
+  const userService = new UserService(env.KV, env.JWT_SECRET);
+  return json(await userService.changePassword(auth.userId, data.oldPassword, data.newPassword, data.code));
+});
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // CORS handling for preflight requests
