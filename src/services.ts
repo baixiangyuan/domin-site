@@ -68,9 +68,10 @@ export class UserService {
     return { success: true };
   }
 
-  async deleteAccount(userId: string): Promise<any> {
+  async deleteAccount(userId: string, password: string): Promise<any> {
     const user = await this.getUser(userId);
     if (!user) throw new Error('用户不存在');
+    if (user.password !== password) throw new Error('密码错误');
 
     // 1. 删除用户所有的子域名
     const subdomains = await this.getSubdomainService().getUserSubdomains(userId);

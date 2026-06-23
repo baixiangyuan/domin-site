@@ -320,6 +320,14 @@ router.delete('/api/profile', async (req, env) => {
   const result = await userService.deleteAccount(auth.userId);
   return json(result);
 });
+
+router.post('/api/delete-account', async (req, env) => {
+  const auth = await authMiddleware(req, env);
+  if (auth instanceof Response) return auth;
+  const data = await req.json();
+  const userService = new UserService(env.KV, env.JWT_SECRET);
+  return json(await userService.deleteAccount(auth.userId, data.password));
+});
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     // CORS handling for preflight requests
